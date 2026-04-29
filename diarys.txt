@@ -1,0 +1,2 @@
+Day 1: I started learning Node js
+Day 2: I learnt file system and it was a very interesting topic in node js
