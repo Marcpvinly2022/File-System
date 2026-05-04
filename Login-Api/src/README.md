@@ -11,7 +11,7 @@ This is a backend authentication service built as part of my coding course. It h
 - **Node.js** & **Express** (Server)
 - **Bcrypt** (Password hashing)
 - **JSON Web Token (JWT)** (Authentication)
-- **MongoDB/PostgreSQL** (Database - *choose yours*)
+- **PostgreSQL** 
 
 ## 🚦 API Endpoints
 
@@ -19,7 +19,7 @@ This is a backend authentication service built as part of my coding course. It h
 | :--- | :--- | :--- |
 | POST | `/api/register` | Register a new user |
 | POST | `/api/login` | Login and get a token |
-| GET | `/api/profile` | View profile (Protected) |
+
 
 ## ⚙️ Setup Instructions
 1. Navigate to this folder: `cd login-api`
