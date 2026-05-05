@@ -1,5 +1,5 @@
 import http from 'http';
-import { registerUser, loginUser } from './src/authController.js';
+import { registerUser, loginUser, refreshUser } from './src/authController.js';
 
 const getBody = (request) => new Promise((resolve) => {
     let body = '';
@@ -9,16 +9,21 @@ const getBody = (request) => new Promise((resolve) => {
 
 const server = http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-
+ 
     try {
         const body = (req.method === 'POST') ? await getBody(req) : null;
 
-        if (req.url === '/register' && req.method === 'POST') {
+        if (req.url === '/api/register' && req.method === 'POST') {
             await registerUser(req, res, body);
         } 
-        else if (req.url === '/login' && req.method === 'POST') {
+        else if (req.url === '/api/login' && req.method === 'POST') {
             await loginUser(req, res, body);
         } 
+
+        else if (req.url === '/api/refresh' && req.method == 'POST') {
+            await refreshUser(req, res);
+        } 
+
         else {
             res.statusCode = 404;
             res.end(JSON.stringify({ error: 'Route not found' }));
