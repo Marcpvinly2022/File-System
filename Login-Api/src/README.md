@@ -1,6 +1,6 @@
 # Login API 🔐
 
-This is a backend authentication service built as part of my coding course. It handles user registration, login, and secure token generation.
+This is a backend authentication service built as part of my coding course. It handles user registration, login, and secure token generation with refresh token.
 
 ## 🛠 Features
 - **User Registration**: Hash passwords before saving to the database.
@@ -14,7 +14,7 @@ This is a backend authentication service built as part of my coding course. It h
 - **Bcrypt** (Password hashing)
 - **JSON Web Token (JWT)** (Authentication)
 - **JSON Web Token (JWT) refresh token** (Authentication)
-- **Cookie-parser** (Authentication)
+- **Cookie-parser** (to store token generated)
 - **PostgreSQL** 
 
 ## 🚦 API Endpoints
