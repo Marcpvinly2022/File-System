@@ -34,7 +34,7 @@ This is a backend authentication service built as part of my coding course. It h
 ![login Success](./login-endpoint.png)
 
 ### Refresh EndPoint
-![Refresh Token Success](./refreshtoken-testing.png)
+![Refresh Token Success](./refreshtoken-test.png)
 
 
 ## ⚙️ Setup Instructions
