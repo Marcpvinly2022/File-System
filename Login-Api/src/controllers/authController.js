@@ -1,7 +1,8 @@
-import pool from './db.js';
+import pool from '../db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { parseCookie } from './refreshToken_helper.js';
+import { parseCookie } from '../../utils/refreshToken_helper.js';
+import {redisClient} from '../../utils/redisClient.js';
 
 // Logic for User Registration
 export const registerUser = async (req, res, data) => {
@@ -43,11 +44,11 @@ export const loginUser = async (req, res, data) => {
 
     if (user && await bcrypt.compare(password, user.password)) {
 
-        const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '2m' });
-        const refreshToken = jwt.sign({ id: user.id }, process.env.REFRESH_SECRET, { expiresIn: '1d' });
+        const accessToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2m' });
+        const refreshToken = jwt.sign({ id: user.id, role: user.role }, process.env.REFRESH_SECRET, { expiresIn: '1d' });
         res.writeHead(200, {
             'Content-Type': "application/json",
-            'Set-Cookie': `refreshToken=${refreshToken}; HttpOnly; sameSite=strict; max-age = ${7 * 24 * 60 * 60}`
+            'Set-Cookie': `refreshToken=${refreshToken}; HttpOnly; sameSite=strict; max-age = ${1 * 24 * 60 * 60}`
 
         })
         res.statusCode = 200;
@@ -57,6 +58,43 @@ export const loginUser = async (req, res, data) => {
     res.statusCode = 401;
     res.end(JSON.stringify({ error: "Invalid credentials" }));
 };
+
+export const tokenBlacklist = new Set();
+export const logoutUser = async (req, res) => {
+    const authHeader = req.headers.authorization
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if(token){
+
+        try{
+            // Decode to find the expiration time
+            const decoded = jwt.decode(token)
+            const timeLeft = decoded.exp -  Math.floor(Date.now() / 1000); // Time left in seconds
+
+            if(timeLeft > 0){
+                // Store in Redis with the exact remaining lifespan
+                // Key: token, Value: 'revoked'
+                await redisClient.setEx(token, timeLeft, 'Revoked')
+                
+            }
+//tokenBlacklist.add(token);
+        }catch(err){
+            console.error("BlackList Error", err)
+
+        }
+        // // Add the current access token to the blacklist
+        // tokenBlacklist.add(token);
+    }
+
+    res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Set-Cookie': 'refreshToken=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
+    });
+
+    return res.end(JSON.stringify({ message: "Logged out successfully" }));
+};
+
+
 
 //refresh token logic
 export const refreshUser = async (req, res, data) => {
@@ -74,17 +112,19 @@ try{
     // Verify the refresh token
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET)
  // Generate a fresh access token
- const newAccessToken = jwt.sign({id: decoded.id}, process.env.JWT_SECRET, {expiresIn: '2m'})
+ const newAccessToken = jwt.sign({id: decoded.id, role: decoded.role}, process.env.JWT_SECRET, {expiresIn: '2m'})
 
  res.statusCode = 200;
  res.end(JSON.stringify({
     accessToken: newAccessToken
  }))
 }catch(error){
-    res.statusCode =400;
-    res.end(JSON.stringify({
-   error: "Invalid refresh token"
-}));
+     // This tells the browser: "The token you sent is bad, DELETE IT NOW."
+    res.setHeader('Set-Cookie', 'refreshToken=; HttpOnly; Path=/; Max-Age=0');
+    
+    res.statusCode = 401;
+    res.end(JSON.stringify({ error: "Session expired, please login again" }));
+
     
 }
 }

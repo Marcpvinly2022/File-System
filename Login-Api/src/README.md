@@ -1,44 +1,72 @@
 # Login API 🔐
 
-This is a backend authentication service built as part of my coding course. It handles user registration, login, and secure token generation with refresh token.
+This is a robust backend authentication service built with a focus on security and scalability. It handles user registration, login, session management with refresh tokens, and a secure logout system using Redis.
 
 ## 🛠 Features
-- **User Registration**: Hash passwords before saving to the database.
-- **Secure Login**: Validates credentials and returns a JWT (JSON Web Token).
-- **refresh**: Validates credentials and returns a JWT (JSON Web Token) with addition of refresh token to extend user session.
-- **Protected Routes**: Restricts access to specific data unless the user is logged in.
+- **User Registration**: Secure password hashing with Bcrypt.
+- **Dual Token System**: Implementation of Access Tokens (short-lived) and Refresh Tokens (long-lived) for better security.
+- **Redis Blacklisting**: Real-time token revocation on logout to prevent unauthorized reuse of JWTs.
+- **Role-Based Access Control (RBAC)**: 
+  - `/api/protected`: Accessible by both Users and Admins.
+  - `/api/admin`: Strictly restricted to Admin accounts.
+- **Secure Storage**: Cookies used for storing tokens to mitigate XSS risks.
 
 ## 💻 Tech Stack
-- **Node.js** (Server)
-- **Nodemon** (for server auto reload)
-- **Bcrypt** (Password hashing)
-- **JSON Web Token (JWT)** (Authentication)
-- **JSON Web Token (JWT) refresh token** (Authentication)
-- **Cookie-parser** (to store token generated)
-- **PostgreSQL** 
+- **Node.js**: Runtime environment.
+- **PostgreSQL**: Database for user storage.
+- **Redis**: In-memory data store for token blacklisting.
+- **Bcrypt**: Password hashing.
+- **JSON Web Token (JWT)**: Authentication and session management.
+- **Nodemon**: Development tool for auto-reloading.
 
 ## 🚦 API Endpoints
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| POST | `/api/register` | Register a new user |
-| POST | `/api/login` | Login and get a token |
-| POST | `/api/refresh` | refresh token |
 
-## API TESTING (THUNDER CLIENT) 
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| POST | `/api/register` | Register a new user | Public |
+| POST | `/api/login` | Login and receive Access/Refresh tokens | Public |
+| POST | `/api/refresh` | Exchange Refresh Token for new Access Token | Public |
+| POST | `/api/logout` | Revoke token and add to Redis blacklist | Private |
+| GET | `/api/protected`| Access general protected resources | User/Admin |
+| GET | `/api/admin` | Access administrative dashboard | Admin Only |
 
-## Register EndPoint
-![Register Success](./register-endpoint.png)
+## 📸 API Testing (Thunder Client)
 
-### Login EndPoint
-![login Success](./login-endpoint.png)
+### Register Endpoint
+![Register Success](../media/register-endpoint.png)
 
-### Refresh EndPoint
-![Refresh Token Success](./refreshtoken-test.png)
+### Login Endpoint
+![Login Success](../media/login-endpoint.png)
 
+### Refresh Endpoint
+![Refresh Token Success](../media/refreshtoken-test.png)
+
+### Logout Endpoint
+![Logout Success](../media/logout.png)
+
+### Protected Endpoint
+![Authorize User and Admin can access the resource](../media/protected.png)
+
+### Admin Endpoint
+![Only Admin can access the resource](../media/Admin.png)
 
 ## ⚙️ Setup Instructions
-1. Navigate to this folder: `cd login-api`
-2. Install packages: `npm install`
-3. Create a `.env` file and add your `JWT_SECRET`, `REFRESH_SECRET and `POSTGRE_PASSWORD`.
-4. Run the server: `npm run dev`
+1. **Navigate to the folder**:  
+   `cd login-api`
+2. **Install dependencies**:  
+   `npm install`
+3. **Configure Environment Variables**:  
+   Create a `.env` file and add:
+   ```env
+   PORT=6000
+   JWT_SECRET=your_access_secret
+   REFRESH_SECRET=your_refresh_secret
+   POSTGRE_PASSWORD=your_db_password
+   REDIS_HOST=redis_host
+   REDIS_PORT=redis_port
+   ```
+4. **Redis Setup**:  
+   Ensure your Redis server is running (`sudo service redis-server start`).
+5. **Run the server**:  
+   `npm run dev`
