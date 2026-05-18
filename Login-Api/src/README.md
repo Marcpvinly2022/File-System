@@ -107,6 +107,33 @@ sudo service redis-server start
 ### 4. Running the Ecosystem (Dual-Process Orchestration)
 Because this application relies on a **distributed worker model**, you must spin up both processes in separate terminal instances so they can coordinate via Redis:
 
+
+### Background Email Processing SystemTo ensure our application stays 
+ fast and responsive, we process time-consuming tasks like sending emails in the background using a Queue System powered by Redis and 
+ 
+ * **BullMQ.💡 Why use a queue? ***
+ 
+ When a user registers or requests a password reset, sending an email immediately can slow down the website. 
+ 
+ If the email provider is slow, the user is left waiting. By using a queue, we instantly tell the user "Success!" and let our background system handle the heavy lifting.
+ 
+ *** How It Works (The 3 Components)**
+ The Post Office (Redis Connection - redisClient.js)Redis acts as our central database holding tank.
+ 
+ We created a stable connection that safely holds all the pending tasks (like a mailbox waiting to be emptied) without slowing down our main app.
+ 
+ ***The Mailbox (The Queue - emailQueue.js)**
+ 
+ This is where jobs are placed when a user triggers an action.
+ If a user signs up, a send-email job is added to the queue.If they lose their password, a reset-password job is added.Safety built-in: 
+ 
+ If a job fails (e.g., a temporary network issue), the queue automatically retries up to 3 times before giving up.
+ 
+ ***The Mail Carrier (The Worker - emailWorker.js)**
+ The Worker runs continuously in the background, listening to the Redis mailbox.
+ As soon as a job drops into the queue, the worker picks it up and uses Nodemailer to send out the actual email (Welcome or Password Reset).
+ Traffic Control: The worker is strictly configured to process emails one by one at a safe speed to avoid being flagged as spam by Google.
+
 * **Terminal 1: Start the Main API Gateway Server**
   ```bash
   npm run dev

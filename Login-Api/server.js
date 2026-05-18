@@ -6,10 +6,14 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import {loginLimiter} from './utils/rate-limit.js';
+import {loginLimiter} from './src/midddlewares/rate-limit.js';
 
 // Component Registrations
-import { registerUser, loginUser, refreshUser, logoutUser, forgetPassword, resetPassword } from './src/controllers/authController.js';
+import { registerUser } from './src/controllers/signUp.controller.js';
+import { loginUser } from './src/controllers/signIn.controller.js';
+import { logoutUser } from './src/controllers/logout.controller.js';
+import { refreshUser } from './src/controllers/refreshToken.controller.js';
+import { forgetPassword, resetPassword } from './src/controllers/passwordRest.controller.js';
 import { adminOnly, userOrAdmin } from './src/midddlewares/roleHandler.middleware.js';
 import { authenticate } from './src/midddlewares/auth.middleware.js';
 import { authorize } from './src/midddlewares/role.middleware.js';
