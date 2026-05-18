@@ -1,37 +1,48 @@
-# Login API 🔐
+# Enterprise Express Authentication Engine 🔐
 
-This is a robust backend authentication service built with a focus on security and scalability. It handles user registration, login, session management with refresh tokens, and a secure logout system using Redis.
+A production-grade, highly secure authentication engine migrated from manual Node.js core streams to a robust **Enterprise Express Architecture**. This system features a distributed runtime ecosystem that completely separates web-traffic processing from background asynchronous email tasks via a Redis memory bus.
 
-## 🛠 Features
-- **User Registration**: Secure password hashing with Bcrypt.
-- **Dual Token System**: Implementation of Access Tokens (short-lived) and Refresh Tokens (long-lived) for better security.
-- **Redis Blacklisting**: Real-time token revocation on logout to prevent unauthorized reuse of JWTs.
-- **Role-Based Access Control (RBAC)**: 
-  - `/api/protected`: Accessible by both Users and Admins.
-  - `/api/admin`: Strictly restricted to Admin accounts.
-- **Secure Storage**: Cookies used for storing tokens to mitigate XSS risks.
+## 🛠 Advanced Architecture & Features
+
+- **Distributed Micro-Processes (Multi-Process Execution)**: Engineered for high scaling. The core web API and the background email queue run as entirely independent processes, isolating SMTP network overloads from the main user experience loops.
+- **Asynchronous Task Queueing**: Background worker offloading powered by **BullMQ** and **Nodemailer** ensuring user registration and password resets never block or slow down web server execution.
+- **Express-Driven Middleware Pipelines**: Replaced legacy, manual Node.js request parsing (`getBody`) and manual header overrides (`res.writeHead`) with native, scalable Express pipelines.
+- **Pipelined Security & DoS Protection**: 
+  - Automated secure HTTP headers using **Helmet**.
+  - Strict input stream limits (`express.json({ limit: '1mb' })`) preventing payload-based Denial-of-Service (DoS) memory overloads.
+  - Network-level **Rate Limiting** via `express-rate-limit` tracking client IPs to arrest brute-force routines.
+- **Robust Input Sanitization**: Defensive boundary casing via `.trim().toLowerCase()` transformations mapping safely to backend database queries.
+- **Dual-Token Native Cookie Engine**: Access tokens paired alongside securely isolated, Express-managed `HttpOnly`, `SameSite: strict`, and SSL-enforced state validation cookies.
+- **Real-Time Token Revocation**: Instant signature revocation on logouts mapping dynamic JWT expiration values directly to an in-memory **Redis Cache engine**.
+- **Declarative RBAC Middleware**: Flat, human-readable execution pipelines isolating public, general user, and strict Administrative boundaries.
 
 ## 💻 Tech Stack
-- **Node.js**: Runtime environment.
-- **PostgreSQL**: Database for user storage.
-- **Redis**: In-memory data store for token blacklisting.
-- **Bcrypt**: Password hashing.
-- **JSON Web Token (JWT)**: Authentication and session management.
-- **Nodemon**: Development tool for auto-reloading.
 
-## 🚦 API Endpoints
+- **Framework**: Express (Node.js REST API Architecture)
+- **Database**: PostgreSQL (Driver optimized with Parameterized Queries to block SQL Injection)
+- **Caching & Queue Infrastructure**: Redis Engine (`ioredis` client wrapper & `bullmq` worker ecosystem)
+- **Email Microservice Engine**: Nodemailer (Decoupled completely from web server threads)
+- **Security Utilities**: Bcrypt, Helmet, JSON Web Tokens (JWT), Express-Rate-Limit, Cookie-Parser
+- **Task Automation & Process Isolation**: Nodemon, BullMQ Worker Handlers
+
+## 🚦 Core API Pipeline Documentation
+
+All route processing chains pass through centralized Express middleware arrays before executing controller code.
 
 
-| Method | Endpoint | Description | Access |
-| :--- | :--- | :--- | :--- |
-| POST | `/api/register` | Register a new user | Public |
-| POST | `/api/login` | Login and receive Access/Refresh tokens | Public |
-| POST | `/api/refresh` | Exchange Refresh Token for new Access Token | Public |
-| POST | `/api/logout` | Revoke token and add to Redis blacklist | Private |
-| GET | `/api/protected`| Access general protected resources | User/Admin |
-| GET | `/api/admin` | Access administrative dashboard | Admin Only |
 
-## 📸 API Testing (Thunder Client)
+| Method | Endpoint | Description | Guard Middleware | Access Layer |
+| :--- | :--- | :--- | :--- | :--- |
+| **POST** | `/api/register` | Spawns user entry & pushes background email jobs to Redis | None | Public |
+| **POST** | `/api/login` | Validates records, passes Rate Limiter, drops native cookies | `loginLimiter` | Public |
+| **POST** | `/api/refresh` | Rotates short-lived state variables using valid cookie values | None | Public |
+| **POST** | `/api/forgot-password` | Formats obfuscated reset token generation (Mitigates profiling) | None | Public |
+| **POST** | `/api/reset-password`| Consumes valid SHA256 hashed parameters to execute credential changes | None | Public |
+| **POST** | `/api/logout` | Clears client cookies and commits active signatures to Redis cache | None | Private |
+| **GET** | `/api/protected` | General protected asset path execution | `authenticate`, `authorize` | User / Admin |
+| **GET** | `/api/admin` | Enterprise isolation tier paths | `authenticate`, `authorize` | Admin Only |
+
+## 📸 Enterprise Integration Matrix (Thunder Client Tests)
 
 ### Register Endpoint
 ![Register Success](../media/register-endpoint.png)
@@ -51,22 +62,56 @@ This is a robust backend authentication service built with a focus on security a
 ### Admin Endpoint
 ![Only Admin can access the resource](../media/Admin.png)
 
-## ⚙️ Setup Instructions
-1. **Navigate to the folder**:  
-   `cd login-api`
-2. **Install dependencies**:  
-   `npm install`
-3. **Configure Environment Variables**:  
-   Create a `.env` file and add:
-   ```env
-   PORT=6000
-   JWT_SECRET=your_access_secret
-   REFRESH_SECRET=your_refresh_secret
-   POSTGRE_PASSWORD=your_db_password
-   REDIS_HOST=redis_host
-   REDIS_PORT=redis_port
-   ```
-4. **Redis Setup**:  
-   Ensure your Redis server is running (`sudo service redis-server start`).
-5. **Run the server**:  
-   `npm run dev`
+## ⚙️ Orchestration and Infrastructure Installation
+
+### 1. Repository Initializing
+Navigate to your active directory core and install the production module dependencies:
+```bash
+cd login-api
+npm install
+```
+
+### 2. Configuration Parameters Matrix (`.env`)
+Create a root `.env` system profile using the blueprint mapping matrix below:
+```env
+# Server Pipeline Configuration
+PORT=6000
+NODE_ENV=development
+ALLOWED_ORIGINS=http://localhost:3000,https://yourfrontend.com
+
+# Crypto / Security Engine Credentials
+JWT_SECRET=your_ultra_secure_access_secret_signature
+REFRESH_SECRET=your_long_lived_refresh_rotation_secret
+
+# Relational Database Storage Parameters
+POSTGRE_PASSWORD=your_secure_db_password
+
+# Asynchronous Memory Bus Configurations (BullMQ / Token Blacklists)
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+
+# Email SMTP Credentials (Used inside emailWorker.js via Nodemailer)
+SMTP_HOST=your_smtp_host
+SMTP_PORT=your_smtp_port
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+```
+
+### 3. Local Infrastructure Verification
+Ensure both your local PostgreSQL schema instances and your background Redis memory queues are up and responding efficiently before spinning up the Express app pipeline:
+```bash
+# Verify or trigger native local background engine tasks
+sudo service redis-server start
+```
+
+### 4. Running the Ecosystem (Dual-Process Orchestration)
+Because this application relies on a **distributed worker model**, you must spin up both processes in separate terminal instances so they can coordinate via Redis:
+
+* **Terminal 1: Start the Main API Gateway Server**
+  ```bash
+  npm run dev
+  ```
+* **Terminal 2: Start the Asynchronous BullMQ Nodemailer Worker Process**
+  ```bash
+  npm run worker
+  ```

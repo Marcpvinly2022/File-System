@@ -1,60 +1,57 @@
-import http from 'http';
-import { registerUser, loginUser, refreshUser, logoutUser } from './src/controllers/authController.js';
-import {adminOnly, userOrAdmin} from './src/midddlewares/roleHandler.middleware.js';
+// =========================================================================
+// server.js (Enterprise Express Architecture)
+// =========================================================================
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import {loginLimiter} from './utils/rate-limit.js';
+
+// Component Registrations
+import { registerUser, loginUser, refreshUser, logoutUser, forgetPassword, resetPassword } from './src/controllers/authController.js';
+import { adminOnly, userOrAdmin } from './src/midddlewares/roleHandler.middleware.js';
 import { authenticate } from './src/midddlewares/auth.middleware.js';
-import {authorize} from './src/midddlewares/role.middleware.js';
+import { authorize } from './src/midddlewares/role.middleware.js';
 
+dotenv.config();
 
+const app = express();
 
-const getBody = (request) => new Promise((resolve) => {
-    let body = '';
-    request.on('data', chunk => body += chunk.toString());
-    request.on('end', () => resolve(JSON.parse(body || '{}')));
+// 1. Global Infrastructure Protections
+app.use(cookieParser()); // Parses cookies for refresh token handling
+app.use(helmet()); // Layer 2026 security headers automatically
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', credentials: true }));
+app.use(express.json({ limit: '1mb' })); // Replaces your getBody function with DoS stream protection
+
+// 2. Public Authentication Operations
+app.post('/api/register', registerUser);
+app.post('/api/login', loginLimiter, loginUser);
+app.post('/api/logout', logoutUser);
+app.post('/api/refresh', refreshUser);
+app.post('/api/forgot-password', forgetPassword);
+app.post('/api/reset-password', resetPassword);
+
+// 3. Protected Enterprise Routes via Pipeline Chaining
+// Replaces complex wrapper trees with flat, execution-safe declarative arrays
+app.get('/api/admin', authenticate, authorize('admin'), adminOnly);
+app.get('/api/protected', authenticate, authorize('admin', 'user'), userOrAdmin);
+
+// 4. Structural Fallback Route (404 Error Matrix)
+app.use((req, res) => {
+    res.status(404).json({ error: 'Requested Route Endpoint Not Found' });
 });
 
-console.log("route hit");
-console.log("inside authenticate");
-console.log("inside authorize");
-console.log("inside handler");
-
-const server = http.createServer(async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
- 
-    try {
-        const body = (req.method === 'POST') ? await getBody(req) : null;
-
-        if (req.url === '/api/register' && req.method === 'POST') {
-            await registerUser(req, res, body);
-        } 
-        else if (req.url === '/api/login' && req.method === 'POST') {
-            await loginUser(req, res, body);
-        } 
-        else if (req.url === '/api/logout' && req.method === 'POST') {
-            await logoutUser(req, res, body);
-        } 
-        else if (req.url === '/api/refresh' && req.method === 'POST') {
-            await refreshUser(req, res);
-        } 
-
-        // New protected routes
-    else if (req.url === '/api/admin' && req.method === 'GET') {
-      await authenticate(
-        authorize('admin')(adminOnly)
-      )(req, res);
-    }
-    else if (req.url === '/api/protected' && req.method === 'GET') {
-      await authenticate(
-        authorize('admin', 'user')(userOrAdmin)
-      )(req, res);
-    }
-        else {
-            res.statusCode = 404;
-            res.end(JSON.stringify({ error: 'Route not found' }));
-        }
-    } catch (err) {
-        res.statusCode = 500;
-        res.end(JSON.stringify({ error: 'Internal Server Error' }));
-    }
+// 5. Centralized Global Failure Boundary Middleware Interceptor
+app.use((err, req, res, next) => {
+    console.error('[Fatal Engine App Interception Error]:', err.stack);
+    
+    res.status(err.status || 500).json({
+        error: process.env.NODE_ENV === 'production' 
+            ? 'Internal Server Processing Error' 
+            : err.message
+    });
 });
 
-server.listen(6000, () => console.log('Server running on port 6000'));
+const PORT = process.env.PORT || 6000;
+app.listen(PORT, () => console.log(`🚀 Industrial Express Engine active on port ${PORT}`));
