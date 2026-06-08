@@ -15,6 +15,15 @@ A production-grade, highly secure authentication engine migrated from manual Nod
 - **Dual-Token Native Cookie Engine**: Access tokens paired alongside securely isolated, Express-managed `HttpOnly`, `SameSite: strict`, and SSL-enforced state validation cookies.
 - **Real-Time Token Revocation**: Instant signature revocation on logouts mapping dynamic JWT expiration values directly to an in-memory **Redis Cache engine**.
 - **Declarative RBAC Middleware**: Flat, human-readable execution pipelines isolating public, general user, and strict Administrative boundaries.
+- **Dockerized Runtime Ecosystem**: Engineered for high portability and scaling. The entire stack (API, Worker, Postgres, Redis, Dashboard) is orchestrated via Docker, isolating SMTP network overloads and database processes from the main user experience loops.
+- **Asynchronous Task Queueing**: Background worker offloading powered by **BullMQ** ensuring user registration and password resets never block web server execution.
+- **Atomic Idempotency Locking**: Implemented a Redis-backed **Atomic Lock** (`X-Idempotency-Key`) to prevent "double-tap" request spam and redundant expensive Bcrypt operations.
+- **Pipelined Security & Obscurity**: 
+  - Automated secure HTTP headers using **Helmet**.
+  - Strict input stream limits (`express.json({ limit: '1mb' })`) preventing payload-based DoS memory overloads.
+  - **Tricky Rate Limiting**: Redis-powered IP tracking with "vague" responses (`SEC-THR-01`) to mislead automated brute-force scripts.
+- **Observability Dashboard**: Integrated **BullBoard** for real-time visual monitoring of background email queues (Active/Waiting/Failed/Completed).
+- **Automated Infrastructure**: Uses `init.sql` for automated UUID-based schema provisioning on container startup.
 
 ## 💻 Tech Stack
 
@@ -23,6 +32,7 @@ A production-grade, highly secure authentication engine migrated from manual Nod
 - **Caching & Queue Infrastructure**: Redis Engine (`ioredis` client wrapper & `bullmq` worker ecosystem)
 - **Email Microservice Engine**: Nodemailer (Decoupled completely from web server threads)
 - **Security Utilities**: Bcrypt, Helmet, JSON Web Tokens (JWT), Express-Rate-Limit, Cookie-Parser
+- **Orchestration**: Docker & Docker Compose
 - **Task Automation & Process Isolation**: Nodemon, BullMQ Worker Handlers
 
 ## 🚦 Core API Pipeline Documentation
@@ -142,3 +152,46 @@ Because this application relies on a **distributed worker model**, you must spin
   ```bash
   npm run worker
   ```
+
+## ⚙️ Orchestration & Installation
+
+### 1. Blueprint Configuration (`.env`)
+Create a root `.env` system profile using the blueprint below:
+```env
+# Docker Networking (Use Service Names)
+DB_HOST=db-srv
+REDIS_HOST=redis-srv
+PORT=6000
+
+# Security
+POSTGRES_PASSWORD=your_password
+JWT_SECRET=your_secret
+REFRESH_SECRET=your_refresh_secret
+```
+
+### 2. Running the Ecosystem
+We have simplified the lifecycle management via npm scripts:
+
+* **Standard Start / Apply Code Changes:**
+  ```bash
+  npm run docker:up
+  ```
+* **Wipe Database & Start Fresh (Atomic Reset):**
+  ```bash
+  npm run docker:reset
+  ```
+
+### 3. Service Access Map
+* **Main API**: `http://localhost:6000`
+* **Queue Dashboard**: `http://localhost:3001` (Monitor emails here)
+* **Postgres External**: `localhost:5433` (For pgAdmin/DBeaver)
+
+## 📸 Enterprise Integration Matrix
+
+### Queue Observability (BullBoard)
+*Monitor the asynchronous memory bus in real-time.*
+![BullBoard Dashboard](../media/bull-board.png)
+
+### Security Shield (Rate Limiting & Idempotency)
+*Blocking double-submissions and brute-force attempts.*
+![Security Logs](../media/security-logs.png)

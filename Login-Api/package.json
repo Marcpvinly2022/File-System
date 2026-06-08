@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "docker:up": "docker-compose up --build",
-    "docker:reset": "docker-compose down -v && doecker-compose up --build",
+    "docker:reset": "docker-compose down -v && docker-compose up --build",
     "docker:clean": "docker-compose down --rmi all -v --remove-orphans",
     "worker": "node emailWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -30,6 +30,7 @@
     "nodemailer": "^8.0.7",
     "nodemon": "^3.1.14",
     "pg": "^8.20.0",
+    "rate-limit-redis": "^5.0.0",
     "resend": "^6.12.3"
   }
 }

@@ -14,12 +14,17 @@ export const registerUser = async (req, res, data) => {
             return res.status(400).json({ message: "All fields required" });
         }
 
-        if (!email.includes('@') || !email.includes('.com')) {
-            return res.status(400).json({ message: "Invalid email format" });
-        }
+        // 2. Advanced Sanitization (Defense against Blind SQLi/Probing)
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanUsername = username.trim();
 
-        // Check if user exists
-        const userExist = await pool.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
+        // 3. Check for existence (Parameterized)
+        const userExist = await pool.query(
+            'SELECT 1 FROM users WHERE email = $1 OR username = $2 LIMIT 1', 
+            [cleanEmail, cleanUsername]
+        );
+
+        
         if (userExist.rows.length > 0) {
             return res.status(409).json({ error: "Email or Username already exists" });
         }

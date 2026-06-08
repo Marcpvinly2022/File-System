@@ -16,17 +16,20 @@ export const loginUser = async (req, res) => {
         }
 
         // 2. Client-side format sanity check (Fast failure before hitting DB)
-        if (!email.includes('@') || !email.includes('.com')) {
-            return res.status(400).json({
-                error: "Invalid email address format structure"
-            });
+          // Only allow standard email characters. Block anything suspicious early.
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+            return res.status(400).json({ error: "Invalid email format" });
         }
 
 
 
         // Clean up string trailing/leading whitespaces safely
         const cleanEmail = email.trim().toLowerCase();
-        const result = await pool.query('SELECT * FROM users WHERE email=$1', [cleanEmail]);
+        const result = await pool.query(
+            'SELECT id, password FROM users WHERE email = $1 LIMIT 1', 
+            [cleanEmail]
+            );
         const user = result.rows[0];
        
         if (!user) {
