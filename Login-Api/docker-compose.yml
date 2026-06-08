@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # 1. THE DATABASE SERVICE
+  db-srv:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=user_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # 2. THE REDIS SERVICE
+  redis-srv:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 3. YOUR EXPRESS API
+  api:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "6000:6000"
+    environment:
+      - PORT=6000
+      - REDIS_HOST=redis-srv
+      - REDIS_PORT=6379
+      - DB_HOST=db-srv
+    depends_on:
+      - db-srv
+      - redis-srv
+
+  # 4. THE DASHBOARD SERVICE (Now correctly placed!)
+  queue-dash:
+    image: venatum/bull-board:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - REDIS_HOST=redis-srv
+      - REDIS_PORT=6379
+      - BULL_QUEUES=welcome-emails
+    depends_on:
+      - redis-srv
+
+  # 5. YOUR EMAIL WORKER
+  worker:
+    build: .
+    command: ["node", "emailWorker.js"]
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis-srv
+      - REDIS_PORT=6379
+      - DB_HOST=db-srv
+    depends_on:
+      - db-srv
+      - redis-srv
+
+volumes:
+  pgdata:

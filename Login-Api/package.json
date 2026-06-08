@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
+    "docker:up": "docker-compose up --build",
+    "docker:reset": "docker-compose down -v && doecker-compose up --build",
+    "docker:clean": "docker-compose down --rmi all -v --remove-orphans",
     "worker": "node emailWorker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
